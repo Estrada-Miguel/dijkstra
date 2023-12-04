@@ -1,4 +1,4 @@
-#  dijkstra
+#  algoritmo de eleccion de ruta mas corta "dijkstra"
 publicacion del projecto final<br>
 creado por:
 
