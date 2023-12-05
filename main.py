@@ -9,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 # Definir grafo y nodos como variables globales
 grafo = None
 nodos = None
+canvas = None  # Agregar variable para el widget de lienzo
 
 # Función para verificar si una matriz es simétrica
 def es_matriz_simetrica(matriz):
@@ -61,6 +62,9 @@ def on_button_click():
     fin = entry_fin.get().upper()
 
     try:
+        if grafo is None:
+            raise ValueError("No has ingresado ninguna matriz")
+
         ruta_corta = encontrar_ruta_mas_corta(grafo, inicio, fin)
 
         # Crear una nueva ventana para el grafo con la ruta más corta
@@ -91,7 +95,7 @@ def salir():
 # Función llamada cuando se presiona el botón "Crear Matriz" al inicio
 def crear_matriz():
     try:
-        global nodos
+        global nodos, grafo, canvas
         # Solicitar al usuario el tamaño de la matriz
         tamano = simpledialog.askinteger("Tamaño de la Matriz", "Ingrese el tamaño de la matriz (número de filas y columnas, mínimo 2):", minvalue=2)
 
@@ -131,7 +135,7 @@ def crear_matriz():
 # Función para procesar la matriz ingresada por el usuario
 def procesar_matriz(matriz_entrada, tamano, ventana_matriz):
     try:
-        global grafo
+        global nodos, grafo, canvas
         # Obtener los valores de la matriz ingresada
         matriz_valores = []
         for i in range(tamano):
@@ -142,7 +146,14 @@ def procesar_matriz(matriz_entrada, tamano, ventana_matriz):
             matriz_valores.append(fila)
 
         # Generar el grafo con la matriz ingresada
-        grafo = generar_grafo(matriz_valores, nodos)
+        grafo_nuevo = generar_grafo(matriz_valores, nodos)
+
+        # Si ya hay un grafo en la interfaz, limpiarlo antes de dibujar el nuevo
+        if grafo is not None and canvas is not None:
+            canvas.get_tk_widget().destroy()
+
+        # Actualizar el grafo global
+        grafo = grafo_nuevo
 
         # Dibujar el grafo en la interfaz principal
         fig, ax = plt.subplots(figsize=(8, 6))
