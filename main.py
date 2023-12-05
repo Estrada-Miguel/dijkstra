@@ -2,14 +2,17 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import tkinter as tk
 from tkinter import ttk
+from tkinter import simpledialog
 from tkinter import messagebox
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+# Definir grafo y nodos como variables globales
+grafo = None
+nodos = None
 
 # Función para verificar si una matriz es simétrica
 def es_matriz_simetrica(matriz):
     return all(matriz[i][j] == matriz[j][i] for i in range(len(matriz)) for j in range(len(matriz[0])))
-
 
 # Función para generar un grafo a partir de una matriz y nodos
 def generar_grafo(matriz, nodos):
@@ -22,7 +25,6 @@ def generar_grafo(matriz, nodos):
                 G.add_edge(nodos[i], nodos[j], weight=matriz[i][j])
     return G
 
-
 # Función para dibujar el grafo
 def dibujar_grafo(grafo, ax):
     pos = nx.spring_layout(grafo, seed=42)
@@ -31,7 +33,6 @@ def dibujar_grafo(grafo, ax):
     nx.draw_networkx_edges(grafo, pos, ax=ax)
     nx.draw_networkx_edge_labels(grafo, pos, edge_labels=labels, ax=ax)
     nx.draw_networkx_labels(grafo, pos, font_size=10, ax=ax)
-
 
 # Función para encontrar la ruta más corta en el grafo
 def encontrar_ruta_mas_corta(grafo, inicio, fin):
@@ -43,7 +44,6 @@ def encontrar_ruta_mas_corta(grafo, inicio, fin):
     except nx.NetworkXNoPath:
         raise ValueError("No hay ruta entre los nodos especificados")
 
-
 # Función para dibujar la ruta más corta en el grafo
 def dibujar_ruta_mas_corta(grafo, ruta, ax):
     pos = nx.spring_layout(grafo, seed=42)
@@ -52,9 +52,8 @@ def dibujar_ruta_mas_corta(grafo, ruta, ax):
     nx.draw_networkx_edges(grafo, pos, ax=ax)
     nx.draw_networkx_edge_labels(grafo, pos, edge_labels=labels, ax=ax)
     nx.draw_networkx_labels(grafo, pos, font_size=10, ax=ax)
-    ruta_edges = [(ruta[i], ruta[i + 1]) for i in range(len(ruta) - 1)]
+    ruta_edges = [(ruta[i], ruta[i+1]) for i in range(len(ruta)-1)]
     nx.draw_networkx_edges(grafo, pos, edgelist=ruta_edges, edge_color='r', width=2, ax=ax)
-
 
 # Función llamada cuando se presiona el botón "Buscar Ruta"
 def on_button_click():
@@ -83,43 +82,99 @@ def on_button_click():
     except ValueError as e:
         messagebox.showerror("Error", str(e))
 
-
 # Función llamada cuando se presiona el botón "Salir" en la interfaz principal
 def salir():
     mensaje_despedida = "Muchas gracias por usar nuestro servicio"
     messagebox.showinfo("Despedida", mensaje_despedida)
     root.destroy()
 
+# Función llamada cuando se presiona el botón "Crear Matriz" al inicio
+def crear_matriz():
+    try:
+        global nodos
+        # Solicitar al usuario el tamaño de la matriz
+        tamano = simpledialog.askinteger("Tamaño de la Matriz", "Ingrese el tamaño de la matriz (número de filas y columnas, mínimo 2):", minvalue=2)
 
-# Nueva matriz de adyacencia del grafo
-matriz = [
-    [0, 6, 2, 3, 4, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 5, 0, 0, 0],
-    [0, 0, 0, 3, 0, 7, 9, 0, 0, 0],
-    [0, 0, 3, 0, 0, 6, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0, 3, 0],
-    [0, 0, 0, 0, 0, 0, 2, 6, 1, 0],
-    [0, 0, 0, 0, 0, 2, 0, 3, 0, 7],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [0, 0, 0, 2, 0, 1, 0, 8, 0, 9],
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-]
+        if tamano is not None:  # Verificar si el usuario canceló la operación
+            # Crear una nueva ventana para ingresar los valores de la matriz
+            ventana_matriz = tk.Toplevel(root)
+            ventana_matriz.title("Ingresar Matriz")
 
-nodos = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']
+            # Agregar mensaje informativo
+            mensaje_label = ttk.Label(ventana_matriz, text="Ingrese cada uno de los datos de la matriz (Solo números)")
+            mensaje_label.grid(row=0, columnspan=tamano, pady=10)
 
-# Generar el grafo
-grafo = generar_grafo(matriz, nodos)
+            # Crear matriz de entrada
+            matriz_entrada = []
+            for i in range(tamano):
+                fila = []
+                for j in range(tamano):
+                    entry = ttk.Entry(ventana_matriz, validate='key', validatecommand=(root.register(validate_numeric_input), '%P'))
+                    entry.grid(row=i + 1, column=j, padx=5, pady=5)
+                    fila.append(entry)
+                matriz_entrada.append(fila)
 
-# Crear la interfaz principal
+            # Agregar el botón "Aceptar" para procesar la matriz ingresada
+            button_aceptar = ttk.Button(ventana_matriz, text="Aceptar", command=lambda: procesar_matriz(matriz_entrada, tamano, ventana_matriz))
+            button_aceptar.grid(row=tamano + 1, column=0, pady=10)
+
+            # Agregar el botón "Cancelar" para cancelar la operación
+            button_cancelar = ttk.Button(ventana_matriz, text="Cancelar", command=ventana_matriz.destroy)
+            button_cancelar.grid(row=tamano + 1, column=1, pady=10)
+
+            # Definir nodos
+            nodos = [str(i) for i in range(1, tamano + 1)]
+
+    except ValueError as e:
+        messagebox.showerror("Error", str(e))
+
+# Función para procesar la matriz ingresada por el usuario
+def procesar_matriz(matriz_entrada, tamano, ventana_matriz):
+    try:
+        global grafo
+        # Obtener los valores de la matriz ingresada
+        matriz_valores = []
+        for i in range(tamano):
+            fila = []
+            for j in range(tamano):
+                valor = float(matriz_entrada[i][j].get())
+                fila.append(valor)
+            matriz_valores.append(fila)
+
+        # Generar el grafo con la matriz ingresada
+        grafo = generar_grafo(matriz_valores, nodos)
+
+        # Dibujar el grafo en la interfaz principal
+        fig, ax = plt.subplots(figsize=(8, 6))
+        dibujar_grafo(grafo, ax)
+
+        # Incorporar la figura en la ventana principal
+        canvas = FigureCanvasTkAgg(fig, master=root)
+        canvas_widget = canvas.get_tk_widget()
+        canvas_widget.pack()
+
+        # Cerrar la ventana de ingreso de datos de la matriz
+        ventana_matriz.destroy()
+
+    except ValueError as e:
+        messagebox.showerror("Error", "Por favor, ingrese valores numéricos en todas las celdas de la matriz")
+
+# Función para validar la entrada como número
+def validate_numeric_input(value):
+    if value.isdigit() or (value[0] == '-' and value[1:].isdigit()):
+        return True
+    elif value == "":
+        return True
+    else:
+        return False
+
+# Interfaz principal
 root = tk.Tk()
 root.title("Ruta Más Corta")
 
-# Dibujar el primer grafo en la interfaz principal
-fig, ax = plt.subplots(figsize=(8, 6))
-dibujar_grafo(grafo, ax)
-canvas = FigureCanvasTkAgg(fig, master=root)
-canvas_widget = canvas.get_tk_widget()
-canvas_widget.pack()
+# Botón para crear la matriz al inicio
+button_crear_matriz = ttk.Button(root, text="Crear Matriz", command=crear_matriz)
+button_crear_matriz.pack(pady=10)
 
 # Interfaz para ingresar el inicio y fin de la ruta más corta
 frame_entrada = ttk.Frame(root)
